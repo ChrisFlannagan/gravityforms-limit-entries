@@ -20,9 +20,13 @@ if ( ! class_exists( 'GF_Limit_Entries' ) ) {
 	class GF_Limit_Entries {
 		public static function init() {
 			require_once( plugin_dir_path( __FILE__ ) . 'classes/settings.php' );
+			require_once( plugin_dir_path( __FILE__ ) . 'classes/display.php' );
 
 			$settings = new GFLE_Settings();
+			$display = new GFLE_Display();
+
 			$settings->hook();
+			$display->hook();
 		}
 	}
 

@@ -21,7 +21,7 @@ class GFLE_Settings {
 	public function add_settings( $settings, $form ) {
 		$settings[ $this->get_settings_key_label() ][ self::SETTING_ID ] = '
         <tr>
-            <th><label for="' . self::SETTING_ID . '">' . __( 'Maximum Entries', 'gflimitentries' ) . '</label></th>
+            <th><label for="' . self::SETTING_ID . '">' . __( 'Global Maximum Entries', 'gflimitentries' ) . '</label></th>
             <td><input type="number" min="0" value="' . rgar( $form, self::SETTING_ID ) . '" name="' . self::SETTING_ID . '"></td>
         </tr>';
 
