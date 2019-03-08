@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Plugin Name: Gravityforms Limit Entries
+ * Plugin Name: Better Gravityforms Limit Entries with CTA
  * Plugin URI: https://github.com/ChrisFlannagan/gravityforms-limit-entries
  * Author: MrFlannagan
  * Author URI: https://whoischris.com
