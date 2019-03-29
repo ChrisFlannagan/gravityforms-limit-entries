@@ -10,6 +10,8 @@
 class GFLE_Display {
 
 	const FORM_REACHED_MAX_OPTION = 'form_reached_max_option_';
+	const FORM_REACHED_MAX_PRODUCT_OPTION = 'form_reached_max_product_option_';
+	const LIMIT_AMT_CSS = 'limit-amt-';
 
 	private $form_message;
 	private $form_cta;
@@ -31,12 +33,40 @@ class GFLE_Display {
 			return $form;
 		}
 
-		$count = RGFormsModel::get_form_counts( $form['id'] );
-		if ( (int) $count['total'] < $limit ) {
-			return $form;
+		$class_amts = [];
+		foreach ( $form['fields'] as $field ) {
+			/** @var \GF_Field $field */
+			if ( isset( $field->cssClass ) && strpos( $field->cssClass, self::LIMIT_AMT_CSS ) !== false ) {
+				$input_id = '';
+				foreach ( $field->inputs as $input ) {
+					if ( $input['label'] === 'Quantity' ) {
+						$input_id = $input['id'];
+					}
+				}
+
+				$value = $field->get_value_submission( [] )[ $input_id ];
+				$amount = explode( self::LIMIT_AMT_CSS, $field->cssClass )[1];
+				if ( is_numeric( $amount ) && is_numeric( $value ) ) {
+					$class_amts[] = (int) $amount * (int) $value;
+				}
+			}
 		}
 
-		$option_key = self::FORM_REACHED_MAX_OPTION . '_' . $form['id'];
+		if ( empty( $class_amts ) ) {
+			$count = RGFormsModel::get_form_counts( $form[ 'id' ] );
+			$option_key = self::FORM_REACHED_MAX_OPTION;
+			if ( (int) $count[ 'total' ] < $limit ) {
+				return $form;
+			}
+		} else {
+			$option_key = self::FORM_REACHED_MAX_PRODUCT_OPTION;
+			$count = [ 'total' => array_sum( $class_amts ) ];
+			if ( (int) $count[ 'total' ] < $limit ) {
+				return $form;
+			}
+		}
+
+		$option_key = $option_key . '_' . $form['id'];
 		$max_reached = get_option( $option_key, 0 );
 		if ( ! empty( $max_reached ) && (int) $max_reached < $limit ) {
 			$max_reached = 0;
