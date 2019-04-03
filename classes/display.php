@@ -18,8 +18,41 @@ class GFLE_Display {
 	private $form_cta_link;
 
 	public function hook() {
+		add_filter( 'gform_field_validation', [ $this, 'validate_amount' ], 10, 4 );
 		add_filter( 'gform_pre_render', [ $this, 'display_or_nullify_form' ], 10, 1 );
 		add_filter( 'gform_form_not_found_message', [ $this, 'display_message' ] );
+	}
+
+	public function validate_amount( $result, $value, $form, $field ) {
+		if ( ! $this->is_limited_form( $form ) ) {
+			return $result;
+		}
+
+		$field_id = isset( $form[ GFLE_Settings::SETTING_FIELD_ID_TO_COUNT ] ) ? (float) $form[ GFLE_Settings::SETTING_FIELD_ID_TO_COUNT ] : 0;
+		if ( empty( $field_id ) ) {
+			return $result;
+		}
+
+		$field_key = 'input_' . str_replace( '.', '_', $field_id );
+		$field_partial = explode( '.', $field_id )[0];
+		if ( (int) $field_partial !== $field['id'] ) {
+			return $result;
+		}
+
+		if ( ! isset( $_REQUEST[ $field_key ] ) || ! is_numeric( $_REQUEST[ $field_key ] ) ) {
+			return $result;
+		}
+
+		$total = $this->get_total( $form );
+		$total_with_submission = (int) $_REQUEST[ $field_key ];
+		$limit = $this->get_limit( $form );
+
+		if ( $result['is_valid'] && ( $total + $total_with_submission ) > $limit ) {
+			$result['is_valid'] = false;
+			$result['message'] = 'Limit is nearly reached and you can only set to ' . ( $limit - $total ) . ' or less';
+		}
+
+		return $result;
 	}
 
 	/**
@@ -28,53 +61,25 @@ class GFLE_Display {
 	 * @return array|null;
 	 */
 	public function display_or_nullify_form( $form ) {
-		$limit = isset( $form[ GFLE_Settings::SETTING_ID ] ) ? (int) $form[ GFLE_Settings::SETTING_ID ] : 0;
-		if ( empty( $limit ) ) {
+		if ( ! $this->is_limited_form( $form ) ) {
 			return $form;
 		}
 
-		$class_amts = [];
-		foreach ( $form['fields'] as $field ) {
-			/** @var \GF_Field $field */
-			if ( isset( $field->cssClass ) && strpos( $field->cssClass, self::LIMIT_AMT_CSS ) !== false ) {
-				$input_id = '';
-				foreach ( $field->inputs as $input ) {
-					if ( $input['label'] === 'Quantity' ) {
-						$input_id = $input['id'];
-					}
-				}
-
-				$value = $field->get_value_submission( [] )[ $input_id ];
-				$amount = explode( self::LIMIT_AMT_CSS, $field->cssClass )[1];
-				if ( is_numeric( $amount ) && is_numeric( $value ) ) {
-					$class_amts[] = (int) $amount * (int) $value;
-				}
-			}
+		$total = $this->get_total( $form );
+		$limit = $this->get_limit( $form );
+		if ( $total < $limit ) {
+			return $form;
 		}
 
-		if ( empty( $class_amts ) ) {
-			$count = RGFormsModel::get_form_counts( $form[ 'id' ] );
-			$option_key = self::FORM_REACHED_MAX_OPTION;
-			if ( (int) $count[ 'total' ] < $limit ) {
-				return $form;
-			}
-		} else {
-			$option_key = self::FORM_REACHED_MAX_PRODUCT_OPTION;
-			$count = [ 'total' => array_sum( $class_amts ) ];
-			if ( (int) $count[ 'total' ] < $limit ) {
-				return $form;
-			}
-		}
-
-		$option_key = $option_key . '_' . $form['id'];
+		$option_key = self::FORM_REACHED_MAX_OPTION . '_' . $form['id'];
 		$max_reached = get_option( $option_key, 0 );
 		if ( ! empty( $max_reached ) && (int) $max_reached < $limit ) {
 			$max_reached = 0;
 			delete_option( $option_key );
 		}
 
-		if ( (int) $count['total'] === $limit && empty( $max_reached ) ) {
-			update_option( $option_key, $count['total'] );
+		if ( $total === $limit && empty( $max_reached ) ) {
+			update_option( $option_key, $total );
 			return $form;
 		}
 
@@ -97,4 +102,38 @@ class GFLE_Display {
 		return $message;
 	}
 
+	private function is_limited_form( $form ) {
+		$limit = isset( $form[ GFLE_Settings::SETTING_ID ] ) ? (int) $form[ GFLE_Settings::SETTING_ID ] : 0;
+		if ( empty( $limit ) ) {
+			return false;
+		}
+
+		$field_id = isset( $form[ GFLE_Settings::SETTING_FIELD_ID_TO_COUNT ] ) ? (float) $form[ GFLE_Settings::SETTING_FIELD_ID_TO_COUNT ] : 0;
+		if ( empty( $field_id ) ) {
+			return false;
+		}
+
+		return true;
+	}
+
+	private function get_limit( $form ) {
+		return isset( $form[ GFLE_Settings::SETTING_ID ] ) ? (int) $form[ GFLE_Settings::SETTING_ID ] : 0;
+	}
+
+	private function get_total( $form ) {
+		$field_id = isset( $form[ GFLE_Settings::SETTING_FIELD_ID_TO_COUNT ] ) ? (float) $form[ GFLE_Settings::SETTING_FIELD_ID_TO_COUNT ] : 0;
+		if ( empty( $field_id ) ) {
+			return 0;
+		}
+
+		$total = 0;
+		$entries = GFAPI::get_entries( $form['id'] );
+		foreach ( $entries as $entry ) {
+			if ( isset( $entry[ (string) $field_id ] ) && is_numeric( $entry[ (string) $field_id ] ) ) {
+				$total += (int) $entry[ (string) $field_id ];
+			}
+		}
+
+		return $total;
+	}
 }

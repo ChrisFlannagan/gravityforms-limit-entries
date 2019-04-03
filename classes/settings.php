@@ -4,6 +4,7 @@ class GFLE_Settings {
 
 	const SETTING_ID = 'gfle_limit_entries_amount';
 	const SETTING_MAX_ENTRIES_REACHED = 'gfle_max_entries_reached';
+	const SETTING_FIELD_ID_TO_COUNT = 'gfle_field_id_to_count';
 	const REACHED_CTA = 'gfle_reached_cta';
 	const REACHED_CAT_LINK = 'gfle_reached_cta_link';
 
@@ -23,8 +24,14 @@ class GFLE_Settings {
 	public function add_settings( $settings, $form ) {
 		$settings[ $this->get_settings_key_label() ][ self::SETTING_ID ] = '
         <tr>
-            <th><label for="' . self::SETTING_ID . '">' . __( 'Global Maximum Entries', 'gflimitentries' ) . '</label></th>
+            <th><label for="' . self::SETTING_ID . '">' . __( 'Global Maximum', 'gflimitentries' ) . '</label></th>
             <td><input type="number" min="0" value="' . rgar( $form, self::SETTING_ID ) . '" name="' . self::SETTING_ID . '"></td>
+        </tr>';
+
+		$settings[ $this->get_settings_key_label() ][ self::SETTING_FIELD_ID_TO_COUNT ] = '
+        <tr>
+            <th><label for="' . self::SETTING_FIELD_ID_TO_COUNT . '">' . __( 'ID Of Field To Count', 'gflimitentries' ) . '</label></th>
+            <td><input type="text" value="' . rgar( $form, self::SETTING_FIELD_ID_TO_COUNT ) . '" name="' . self::SETTING_FIELD_ID_TO_COUNT . '"></td>
         </tr>';
 
 		$settings[ $this->get_settings_key_label() ][ self::SETTING_MAX_ENTRIES_REACHED ] = '
@@ -57,6 +64,7 @@ class GFLE_Settings {
 	 */
 	public function save_settings( $form ) {
 		$form[ self::SETTING_ID ] = rgpost(  self::SETTING_ID  );
+		$form[ self::SETTING_FIELD_ID_TO_COUNT ] = rgpost(  self::SETTING_FIELD_ID_TO_COUNT  );
 		$form[ self::SETTING_MAX_ENTRIES_REACHED ] = rgpost(  self::SETTING_MAX_ENTRIES_REACHED  );
 		$form[ self::REACHED_CTA ] = rgpost(  self::REACHED_CTA  );
 		$form[ self::REACHED_CAT_LINK ] = rgpost(  self::REACHED_CAT_LINK  );
