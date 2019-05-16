@@ -33,21 +33,15 @@ class GFLE_Display {
 			return $result;
 		}
 
-		$field_key = 'input_' . str_replace( '.', '_', $field_id );
-		$field_partial = explode( '.', $field_id )[0];
-		if ( (int) $field_partial !== $field['id'] ) {
-			return $result;
-		}
-
-		if ( ! isset( $_REQUEST[ $field_key ] ) || ! is_numeric( $_REQUEST[ $field_key ] ) ) {
+		if ( ! is_array( $value ) || ! isset( $value[ (string) $field_id ] ) || ! is_numeric( $value[ (string) $field_id ] ) ) {
 			return $result;
 		}
 
 		$total = $this->get_total( $form );
-		$total_with_submission = (int) $_REQUEST[ $field_key ];
-		$limit = $this->get_limit( $form );
+		$total_with_submission = (int) $value[ (string) $field_id ] + (int) $total;
+		$limit = (int) $this->get_limit( $form );
 
-		if ( $result['is_valid'] && ( $total + $total_with_submission ) > $limit ) {
+		if ( $result['is_valid'] && $total_with_submission > $limit ) {
 			$result['is_valid'] = false;
 			$result['message'] = 'Limit is nearly reached and you can only set to ' . ( $limit - $total ) . ' or less';
 		}
@@ -94,7 +88,7 @@ class GFLE_Display {
 	 * @return string
 	 */
 	public function display_message() {
-		$message = '<p class="gform_not_found gfle_max_message">' . esc_html_e( $this->form_message ) . '</p>';
+		$message = '<p class="gform_not_found gfle_max_message">' . esc_html( $this->form_message ) . '</p>';
 		if ( ! empty( $this->form_cta ) && ! empty( $this->form_cta_link ) ) {
 			$message .= '<p class="gform_not_found gfle_max_message_cta"><a href="' . esc_html( $this->form_cta_link ) . '">' . esc_html( $this->form_cta ) . '</a>';
 		}
